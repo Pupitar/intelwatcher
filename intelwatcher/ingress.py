@@ -143,25 +143,25 @@ class IntelMap:
             now = int(time.time())
 
             attempts = 0
-            while attempts < 8:
+            while attempts < 10:
                 try:
+                    if attempts > 4:
+                        time.sleep(attempts - 4)
                     result = self.r.post("https://intel.ingress.com/r/getEntities", json=data)
-                    attempts = 10
+                    attempts = 11
                 except Exception as e:
                     attempts += 1
-                    if attempts == 8:
+                    if attempts == 10:
                         log.exception(e)
                         return
 
             if not result or result.text == "{}" or not result.text:
-                self.scrape_tiles(tiles, portals, log, progress, task)
-                return
+                return self.scrape_tiles(tiles, portals, log, progress, task)
             try:
                 result = result.json()["result"]["map"]
             except:
-                self.scrape_tiles(tiles, portals, log, progress, task)
-                return
-            
+                return self.scrape_tiles(tiles, portals, log, progress, task)
+
             errors = []
             for tile in tiles:
                 payload = result.get(tile.name)
