@@ -21,7 +21,7 @@ def update_wp(wp_type, points):
     log.info(f"Found {len(points)} {wp_type}s")
     for wp in points:
         portal_details = scraper.get_portal_details(wp[0])
-        if portal_details is not None:
+        if portal_details is not None and portal_details.get("result"):
             try:
                 pname = maybe_byte(portal_details.get("result")[portal_name])
                 queries.update_point(wp_type, pname, maybe_byte(portal_details.get("result")[portal_url]), wp[0])
@@ -143,8 +143,10 @@ if __name__ == "__main__":
 
     log = logging.getLogger(__name__)
     logging.addLevelName(success_level, "SUCCESS")
+
     def success(self, message, *args, **kws):
-        self._log(success_level, message, args, **kws) 
+        self._log(success_level, message, args, **kws)
+
     logging.Logger.success = success
     logHandler = logging.StreamHandler(sys.stdout)
     logHandler.setLevel(logging.INFO)
@@ -158,9 +160,9 @@ if __name__ == "__main__":
 
     config = Config(config_path)
 
-    scraper = IntelMap(config.cookie)
+    scraper = IntelMap(config.cookie, config)
 
-    if not scraper.getCookieStatus():
+    if not scraper.get_cookie_status():
         log.error("Oops! Looks like you have a problem with your cookie.")
         cookie_get_success = False
         if config.enable_cookie_getting:

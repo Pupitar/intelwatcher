@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 import requests
 import re
-import json
 import time
 from requests.utils import dict_from_cookiejar, cookiejar_from_dict
+from requests.auth import HTTPProxyAuth
+
 import math
+
 __AUTHOR__ = 'lc4t0.0@gmail.com and ccev'
 
 
@@ -19,21 +21,21 @@ def get_tiles_per_edge(zoom):
     return [1, 1, 1, 40, 40, 80, 80, 320, 1000, 2000, 2000, 4000, 8000, 16000, 16000, 32000][zoom]
 
 
-def lng2tile(lng, tpe): # w
-    return int((lng + 180) / 360 * tpe);
+def lng2tile(lng, tpe):
+    return int((lng + 180) / 360 * tpe)
 
 
-def lat2tile(lat, tpe): # j
+def lat2tile(lat, tpe):
     return int((1 - math.log(math.tan(lat * math.pi / 180) + 1 / math.cos(lat * math.pi / 180)) / math.pi) / 2 * tpe)
 
 
 def tile2lng(x, tpe):
-    return x / tpe * 360 - 180;
+    return x / tpe * 360 - 180
 
 
 def tile2lat(y, tpe):
-    n = math.pi - 2 * math.pi * y / tpe;
-    return 180 / math.pi * math.atan(0.5 * (math.exp(n) - math.exp(-n)));
+    n = math.pi - 2 * math.pi * y / tpe
+    return 180 / math.pi * math.atan(0.5 * (math.exp(n) - math.exp(-n)))
 
 
 def maybe_byte(name):
@@ -86,21 +88,31 @@ class IntelMap:
     data_base = {
         'v': '',
     }
-    proxy = {
-        # 'http': 'socks5://127.0.0.1:1080',
-        # 'https': 'socks5://127.0.0.1:1080',
-    }
 
-    def __init__(self, cookie):
+    def __init__(self, cookie, config):
+        self.cookie_dict = None
+        self.r = None
         self.isCookieOk = False
+        self.config = config
         self.login(cookie)
+        self.proxy = {
+            "http": self.config.proxy,
+            "https": self.config.proxy,
+        }
 
     def login(self, cookie):
         try:
             self.cookie_dict = {k.strip(): v for k, v in re.findall(r"(.*?)=(.*?);", cookie)}
             s = requests.Session()
+
+            if self.config.proxy:
+                s.proxies = self.proxy
+                if self.config.proxy_username or self.config.proxy_password:
+                    s.auth = HTTPProxyAuth(self.config.proxy_username, self.config.proxy_password)
+
+            s.headers = self.headers
             s.cookies = cookiejar_from_dict(self.cookie_dict)
-            test = s.get("https://intel.ingress.com/intel", proxies=self.proxy)
+            test = s.get("https://intel.ingress.com/intel")
             self.data_base["v"] = re.findall(r'/jsc/gen_dashboard_([\d\w]+).js"', test.text)[0]
             self.r = s
             self.cookie_dict = dict_from_cookiejar(self.r.cookies)
@@ -109,7 +121,7 @@ class IntelMap:
         except IndexError:
             self.isCookieOk = False
 
-    def getCookieStatus(self):
+    def get_cookie_status(self):
         return self.isCookieOk
 
     def scrape_tiles(self, tiles, portals, log, progress, task):
@@ -131,14 +143,13 @@ class IntelMap:
             now = int(time.time())
 
             attempts = 0
-            while attempts < 4:
+            while attempts < 8:
                 try:
-                    result = self.r.post("https://intel.ingress.com/r/getEntities", json=data, headers=self.headers,
-                                         proxies=self.proxy)
+                    result = self.r.post("https://intel.ingress.com/r/getEntities", json=data)
                     attempts = 10
                 except Exception as e:
                     attempts += 1
-                    if attempts == 4:
+                    if attempts == 8:
                         log.exception(e)
                         return
 
@@ -187,71 +198,8 @@ class IntelMap:
     def get_portal_details(self, guid):
         data = self.data_base.copy()
         data["guid"] = guid
-        result = self.r.post("https://intel.ingress.com/r/getPortalDetails", json=data, headers=self.headers,
-                        proxies=self.proxy)
+        result = self.r.post("https://intel.ingress.com/r/getPortalDetails", json=data)
         try:
             return result.json()
         except Exception as e:
             return None
-
-    # UNUSED
-
-    def get_game_score(self):
-        data = self.data_base
-        data = json.dumps(data)
-        _ = self.r.post('https://intel.ingress.com/r/getGameScore', data=data, headers=self.headers, proxies=self.proxy)
-        print(_.text)
-        return json.loads(_.text)
-
-    def get_entities(self, tilenames):
-        _ = {
-          "tileKeys": tilenames,    # ['15_25238_13124_8_8_100']
-        }
-        data = self.data_base
-        data.update(_)
-        data = json.dumps(data)
-        _ = self.r.post('https://intel.ingress.com/r/getEntities', data=data, headers=self.headers, proxies=self.proxy)
-        return json.loads(_.text)
-
-    def get_plexts(self, min_lng, max_lng, min_lat, max_lat, tab='all', maxTimestampMs=-1, minTimestampMs=0,
-                   ascendingTimestampOrder=True):
-        if minTimestampMs == 0:
-            minTimestampMs = int(time.time()*1000)
-        data = self.data_base
-        data.update({
-            'ascendingTimestampOrder': ascendingTimestampOrder,
-            'maxLatE6': max_lat,
-            'minLatE6': min_lat,
-            'maxLngE6': max_lng,
-            'minLngE6': min_lng,
-            'maxTimestampMs': maxTimestampMs,
-            'minTimestampMs': minTimestampMs,
-            'tab': tab,
-        })
-        data = json.dumps(data)
-        _ = self.r.post('https://intel.ingress.com/r/getPlexts', headers=self.headers, data=data, proxies=self.proxy)
-        return json.loads(_.text)
-
-    def send_plexts(self, lat, lng, message, tab='faction'):
-        data = self.data_base
-        data.update({
-            'latE6': lat,
-            'lngE6': lng,
-            'message': message,
-            'tab': tab,
-        })
-        data = json.dumps(data)
-        _ = self.r.post('https://intel.ingress.com/r/sendPlext', headers=self.headers, data=data, proxies=self.proxy)
-        return json.loads(_.text)
-
-    def get_region_score_details(self, lat, lng):
-        data = self.data_base
-        data.update({
-            'latE6': lat,   # 30420109, 104938641
-            'lngE6': lng,
-        })
-        data = json.dumps(data)
-        _ = self.r.post('https://intel.ingress.com/r/getRegionScoreDetails', headers=self.headers, data=data,
-                        proxies=self.proxy)
-        return json.loads(_.text)
-

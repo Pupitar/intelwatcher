@@ -1,8 +1,5 @@
 import pymysql
 
-from datetime import datetime, timedelta 
-
-
 QUERIES = {
     "mad": {
         "update_stop": "UPDATE pokestop SET name = %s, image = %s WHERE pokestop_id = %s",
@@ -22,7 +19,7 @@ QUERIES = {
 }
 
 
-class Queries():
+class Queries:
     def __init__(self, config):
         self.connection = pymysql.connect(
             host=config.db_host,
