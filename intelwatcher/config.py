@@ -24,7 +24,7 @@ class Config:
         self.db_password = config_file.get("DB", "password")
 
         self.proxy = config_file.get("proxy", "proxy", fallback="")
-        self.proxy_username = config_file.getint("proxy", "username", fallback="")
+        self.proxy_username = config_file.get("proxy", "username", fallback="")
         self.proxy_password = config_file.get("proxy", "password", fallback="")
 
         self.scan_db_host = config_file.get("DB", "scan_host", fallback=self.db_host)
