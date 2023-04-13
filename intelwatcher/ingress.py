@@ -106,7 +106,7 @@ class IntelMap:
             s = requests.Session()
 
             if self.config.proxy:
-                s.proxies = self.proxy
+                s.proxies = self.config.proxy
                 if self.config.proxy_username or self.config.proxy_password:
                     s.auth = HTTPProxyAuth(self.config.proxy_username, self.config.proxy_password)
 
