@@ -94,11 +94,11 @@ class IntelMap:
         self.r = None
         self.isCookieOk = False
         self.config = config
-        self.login(cookie)
         self.proxy = {
             "http": self.config.proxy,
             "https": self.config.proxy,
         }
+        self.login(cookie)
 
     def login(self, cookie):
         try:
@@ -106,7 +106,7 @@ class IntelMap:
             s = requests.Session()
 
             if self.config.proxy:
-                s.proxies = self.config.proxy
+                s.proxies = self.proxy
                 if self.config.proxy_username or self.config.proxy_password:
                     s.auth = HTTPProxyAuth(self.config.proxy_username, self.config.proxy_password)
 
