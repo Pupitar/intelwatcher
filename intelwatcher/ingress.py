@@ -143,15 +143,13 @@ class IntelMap:
             now = int(time.time())
 
             attempts = 0
-            while attempts < 10:
+            while attempts < 15:
                 try:
-                    if attempts > 4:
-                        time.sleep(attempts - 4)
                     result = self.r.post("https://intel.ingress.com/r/getEntities", json=data)
-                    attempts = 11
+                    attempts = 16
                 except Exception as e:
                     attempts += 1
-                    if attempts == 10:
+                    if attempts == 15:
                         log.exception(e)
                         return
 
