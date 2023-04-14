@@ -48,8 +48,11 @@ def needed_tiles(tiles):
 
 
 def get_bbox():
-    bboxes = list(config.bbox.split(';'))
-    bboxes = [tuple(map(float, bbox.split(','))) for bbox in bboxes]
+    bboxes = []
+
+    if config.bbox:
+        bboxes = list(config.bbox.split(';'))
+        bboxes = [tuple(map(float, bbox.split(','))) for bbox in bboxes]
 
     if config.koji_project:
         bboxes = []  # clean if we care about koji
