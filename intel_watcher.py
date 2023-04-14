@@ -47,12 +47,44 @@ def needed_tiles(tiles):
     return [t for t in tiles if not t.success and t.fails < 3]
 
 
+def get_bbox():
+    bboxes = list(config.bbox.split(';'))
+    bboxes = [tuple(map(float, bbox.split(','))) for bbox in bboxes]
+
+    if config.koji_project:
+        bboxes = []  # clean if we care about koji
+        session = requests.Session()
+        if config.koji_bearer:
+            session.headers = {'Authorization': "Bearer " + config.koji_bearer}
+        koji_req = session.get(config.koji_project)
+        koji_data = koji_req.json()
+
+        include_types = []
+        if config.koji_include:
+            if "," in config.koji_include:
+                include_types = config.koji_include.splitf(",")
+            else:
+                include_types = config.koji_include
+
+        for area in koji_data["data"]["features"]:
+            if include_types:
+                if area.get("properties") and area["properties"].get("type") in include_types:
+                    bbox = area.get("bbox")
+                    if bbox:
+                        bboxes.append(tuple(bbox))
+            else:
+                bbox = area.get("bbox")
+                if bbox:
+                    bboxes.append(tuple(bbox))
+
+    return list(set(bboxes))
+
+
 def scrape_all(n):
-    bbox = list(config.bbox.split(';'))
+    bbox = get_bbox()
     tiles = []
     for cord in bbox:
-        bbox_cord = list(map(float, cord.split(',')))
-        tiles += get_tiles(bbox_cord)
+        tiles += get_tiles(cord)
 
     log.info(f"Total tiles: {len(tiles)}")
 

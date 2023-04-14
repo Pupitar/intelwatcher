@@ -27,6 +27,10 @@ class Config:
         self.proxy_username = config_file.get("proxy", "username", fallback="")
         self.proxy_password = config_file.get("proxy", "password", fallback="")
 
+        self.koji_project = config_file.get("koji", "project", fallback="")
+        self.koji_bearer = config_file.get("koji", "bearer", fallback="")
+        self.koji_include = config_file.get("koji", "include", fallback="")
+
         self.scan_db_host = config_file.get("DB", "scan_host", fallback=self.db_host)
         self.scan_db_port = config_file.getint("DB", "scan_port", fallback=self.db_port)
         self.scan_db_user = config_file.get("DB", "scan_user", fallback=self.db_user)

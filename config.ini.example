@@ -23,6 +23,11 @@ host =
 username =
 password =
 
+[koji]
+project = https://koji.is.awesome/api/v1/geofence/FeatureCollection/Enabled
+bearer =
+include_types = quest
+
 [Ingress Login]
 # Please look at the readme for the following options
 enable = False
