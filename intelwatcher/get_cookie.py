@@ -111,40 +111,57 @@ def selenium_cookie(config, log):
     user_agent = ('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko)'
                   ' Chrome/105.0.5195.102 Safari/537.36')
 
+    profile = None
     if config.webdriver == 'firefox':
         options = webdriver.FirefoxOptions()
+
+        if config.proxy_host:
+            profile = webdriver.FirefoxProfile()
+            profile.set_preference('network.proxy.type', 1)
+            profile.set_preference('network.proxy.http', config.proxy_host)
+            profile.set_preference('network.proxy.http_port', config.proxy_port)
+            if config.proxy_username or config.proxy_password:
+                profile.set_preference('network.proxy.user', config.proxy_username)
+                profile.set_preference('network.proxy.password', config.proxy_password)
+            profile.update_preferences()
     else:
         options = webdriver.ChromeOptions()
-        options.add_argument(f'user-agent={user_agent}')
+        # options.add_argument(f'user-agent={user_agent}')
 
     if config.headless_mode:
         options.add_argument('--headless')
 
     if config.webdriver == 'firefox':
         from webdriver_manager.firefox import GeckoDriverManager
+        from selenium.webdriver.firefox.service import Service as FirefoxService
 
         options.add_argument('--new-instance')
         options.add_argument('--safe-mode')
 
-        driver = webdriver.Firefox(executable_path=GeckoDriverManager().install(), options=options)
+        driver = webdriver.Firefox(
+            service=FirefoxService(GeckoDriverManager().install()),
+            options=options,
+            firefox_profile=profile
+        )
     else:
         options.add_argument('--disable-extensions')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--no-sandbox')
 
         if config.webdriver == 'chromium':
+            import undetected_chromedriver as uc
+
             from selenium.webdriver.chrome.service import Service as ChromiumService
             from webdriver_manager.chrome import ChromeDriverManager
             from webdriver_manager.core.utils import ChromeType
 
-            driver = webdriver.Chrome(
-                service=ChromiumService(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()),
-                options=options)
+            driver = uc.Chrome(service=ChromiumService(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install()))
         else:
+            import undetected_chromedriver as uc
             from selenium.webdriver.chrome.service import Service as ChromeService
             from webdriver_manager.chrome import ChromeDriverManager
 
-            driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
+            driver = uc.Chrome(service=ChromeService(ChromeDriverManager().install()))
 
     if config.ingress_login_type == 'google':
         log.info('Login to Google via Stackoverflow')
@@ -157,30 +174,27 @@ def selenium_cookie(config, log):
             _save_screenshot_on_failure('google_login_init.png')
 
         log.info('Enter username...')
+        driver.save_screenshot('{}/{}'.format(str(debug_dir), "10.png"))
+        # import pdb;pdb.set_trace()
         try:
-            driver.find_element(By.ID, 'identifierId').send_keys(config.ingress_user)
-            driver.find_element(By.ID, 'identifierNext').click()
+            driver.find_element(By.XPATH, '//*[@id="identifierId"]').send_keys(config.ingress_user)
+            driver.save_screenshot('{}/{}'.format(str(debug_dir), "11.png"))
+            driver.find_element(By.XPATH, '//*[@id="identifierNext"]/div/button/span').click()
+            driver.save_screenshot('{}/{}'.format(str(debug_dir), "12.png"))
             driver.implicitly_wait(10)
         except NoSuchElementException:
             _save_screenshot_on_failure('google_login_username.png')
 
         log.info('Enter password...')
+        driver.save_screenshot('{}/{}'.format(str(debug_dir), "20.png"))
         try:
-            pw_element = driver.find_element(By.ID, 'password').find_element(By.NAME, 'password')
-
-            if config.webdriver == 'firefox':
-                # to make element visible:
-                driver.execute_script(
-                    ('arguments[0].style = ""; arguments[0].style.display = "block"; '
-                     'arguments[0].style.visibility = "visible";'),
-                    pw_element
-                )
-                time.sleep(1)
-
-            pw_element.send_keys(config.ingress_password)
-            driver.find_element(By.ID, 'passwordNext').click()
+            driver.find_element(By.XPATH, '//*[@id="password"]/div[1]/div/div[1]/input').send_keys(config.ingress_password)
+            driver.save_screenshot('{}/{}'.format(str(debug_dir), "21.png"))
+            driver.find_element(By.XPATH, '//*[@id="passwordNext"]/div/button/span').click()
+            driver.save_screenshot('{}/{}'.format(str(debug_dir), "22.png"))
             log.info('Password Click')
             time.sleep(10)
+            driver.save_screenshot('{}/{}'.format(str(debug_dir), "23.png"))
             _save_screenshot('google_login_code.png')
             log.info('sleep 60sec')
             time.sleep(60)

@@ -95,8 +95,8 @@ class IntelMap:
         self.isCookieOk = False
         self.config = config
         self.proxy = {
-            "http": self.config.proxy,
-            "https": self.config.proxy,
+            "http": f"{self.config.proxy_type}://{self.config.proxy_host}:{self.config.proxy_port}",
+            "https": f"{self.config.proxy_type}://{self.config.proxy_host}:{self.config.proxy_port}",
         }
         self.login(cookie)
 
@@ -105,7 +105,7 @@ class IntelMap:
             self.cookie_dict = {k.strip(): v for k, v in re.findall(r"(.*?)=(.*?);", cookie)}
             s = requests.Session()
 
-            if self.config.proxy:
+            if self.config.proxy_host:
                 s.proxies = self.proxy
                 if self.config.proxy_username or self.config.proxy_password:
                     s.auth = HTTPProxyAuth(self.config.proxy_username, self.config.proxy_password)

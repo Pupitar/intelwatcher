@@ -23,7 +23,9 @@ class Config:
         self.db_user = config_file.get("DB", "user")
         self.db_password = config_file.get("DB", "password")
 
-        self.proxy = config_file.get("proxy", "proxy", fallback="")
+        self.proxy_host = config_file.get("proxy", "host", fallback="")
+        self.proxy_type = config_file.get("proxy", "type", fallback="http")
+        self.proxy_port = config_file.get("proxy", "port", fallback=80)
         self.proxy_username = config_file.get("proxy", "username", fallback="")
         self.proxy_password = config_file.get("proxy", "password", fallback="")
 
